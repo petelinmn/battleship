@@ -1,0 +1,92 @@
+
+
+html, body {
+	width: 100%;
+	min-width: 1024px;
+	height: 100%;
+	padding:0;
+	margin:0;
+}
+
+#init-error {
+	padding-left: 24px;
+}
+
+#init-error > h2 {
+	color: red;
+}
+
+#game {
+	width: 1024px;
+	margin-left: auto;
+	margin-right: auto;
+	height:95%;
+	padding: 20px;
+}
+
+#game-content {
+	width: 1024px;
+	margin-left: auto;
+	margin-right: auto;
+	height:98%;
+	padding-top: 20px;
+	background-color:#99A;
+	border: 2px solid black;
+	border-radius: 10px;
+}
+
+#init-menu {
+	/*background-color:#5A5;*/
+	margin-top: 250px;
+	margin-left: auto;
+	margin-right: auto;
+	width:200px;
+}
+
+.btn {
+	display: inline-block;
+    padding: 6px 12px;
+    margin-bottom: 0;
+    font-weight: 400;
+    line-height: 1.42857143;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    -ms-touch-action: manipulation;
+    touch-action: manipulation;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    background-image: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+	margin-top:10px;
+}
+
+.add-user {
+	width: 220px;
+}
+
+input.add-user {
+	width: 196px;
+}
+
+input {
+	padding: 6px 12px;
+    font-size: 18px;
+    line-height: 1.42857143;
+    color: #555;
+    background-color: #fff;
+    background-image: none;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+
+table#table-board {
+	width:100%;
+	height: 100%;
+	background-color: blue;
+}
