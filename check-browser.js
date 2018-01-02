@@ -1,4 +1,8 @@
-if(!Array.prototype.indexOf) {
+/**
+ * Определяем версию браузера
+ */
+
+if(typeof Array.prototype.indexOf !== 'function') {
     Array.prototype.indexOf = function(obj, start) {
          for (var i = (start || 0), j = this.length; i < j; i++) {
              if (this[i] === obj) { return i; }
