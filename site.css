@@ -26,14 +26,14 @@ html, body {
 }
 
 #game-content {
-	width: 1024px;
+	/*width: 1024px;
 	margin-left: auto;
 	margin-right: auto;
 	height:98%;
 	padding-top: 20px;
 	background-color:#99A;
-	border: 2px solid black;
-	border-radius: 10px;
+	border: 2px solid lightslategray;
+	border-radius: 10px;*/
 }
 
 #init-menu {
@@ -66,7 +66,12 @@ html, body {
 	margin-top:10px;
 }
 
-.add-user {
+.btn.add-user {
+	width: 220px;
+}
+
+.btn.add-bot {
+	margin-top: 20px;
 	width: 220px;
 }
 
@@ -90,4 +95,40 @@ table#table-board {
 	width:100%;
 	height: 100%;
 	background-color: blue;
+}
+
+table.game-board-table > tr {
+	height: 500px;
+}
+
+table.game-board-table > tr > td {
+	width: 500px;
+}
+
+
+table.battlefield > tr > td {
+	width:48px;
+	height:40px;
+	border: 1px solid lightcoral;
+}
+
+table.battlefield > tr > td.init {
+	background-color: #bdd4fc;
+}
+
+table.battlefield > tr > td.new {
+	background-color: gray;
+}
+
+table.battlefield > tr > td.ship {
+	background-color: black;
+}
+
+
+table.battlefield > tr > td.wounded {
+	background-color: rgb(92, 16, 16);
+}
+
+table.battlefield > tr > td.destroyed {
+	background-color: deeppink;
 }
