@@ -95,6 +95,7 @@ table#table-board {
 	width:100%;
 	height: 100%;
 	background-color: blue;
+	border-spacing: 100;
 }
 
 table.game-board-table > tr {
@@ -105,6 +106,9 @@ table.game-board-table > tr > td {
 	width: 500px;
 }
 
+table.battlefield{
+	border-spacing: 0;
+}
 
 table.battlefield > tr > td {
 	width:48px;
@@ -113,7 +117,7 @@ table.battlefield > tr > td {
 }
 
 table.battlefield > tr > td.init {
-	background-color: #bdd4fc;
+	background-color: #cbfdff;
 }
 
 table.battlefield > tr > td.new {
@@ -131,4 +135,8 @@ table.battlefield > tr > td.wounded {
 
 table.battlefield > tr > td.destroyed {
 	background-color: deeppink;
+}
+
+table.battlefield > tr > td.default {
+	background-color: transparent;
 }

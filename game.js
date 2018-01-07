@@ -1,18 +1,28 @@
 
 var CELL_STATES = {
-    INIT:   "INIT",         //Просто пустая морская клетка
-    NEW:    "NEW",          //Резмещение нового корабля
-    SHIP:   "SHIP",         //Корабль
-    BESIDE: "BESIDE",       //Клетка рядом с кораблем
-    PAST:   "PAST",         //Попадание мимо
-    WOUNDED:"WOUNDED",      //Подбитый корабль
-    DESTROYED: "DESTROYED"  //Уничтоженный корабль
+    INIT:       "INIT",         //Просто пустая морская клетка
+    NEW:        "NEW",          //Размещение нового корабля
+    WRONG:      "WRONG",        //ошибочная клетка
+    SHIP:       "SHIP",         //Корабль
+    BESIDE:     "BESIDE",       //Клетка рядом с кораблем
+    PAST:       "PAST",         //Попадание мимо
+    WOUNDED:    "WOUNDED",      //Подбитый корабль
+    DESTROYED:  "DESTROYED"     //Уничтоженный корабль
 }
 
-function Gamer(name, ai = false) {
+function Gamer(name, ai) {
+
+
     this.name = name;
     
-    this.ai = ai;
+    this.ai = ai ? ai : false;
+
+    this.render_battlefield = render_battlefield;
+    this.calculate_battlefield_state = calculate_battlefield_state;
+
+    this.ships = [];
+
+    this.newship = [];
 
     this.battleField = [];
     for (var i = 0; i < 10; i++){
@@ -33,20 +43,22 @@ var _game = {
 
 //Список состояний игры
 var _GAME_STATES = {
-    INIT: "INIT",                       //Начальное состояние работы программы
-    INIT_CONTINUE: "INIT_CONTINUE",     //Выбор игроков
-	START: "START",                     //Сигнал к началу игры
-	GAME_STARTED: "GAME_STARTED",       //Идёт игра
-	GAME_OVER: "GAME_OVER"              //Игра закончена
+    INIT:                   "INIT",                      //Начальное состояние работы программы
+    INIT_CONTINUE:          "INIT_CONTINUE",             //Выбор игроков
+    CONSTRUCT_BATTLEFIELD:  "CONSTRUCT_BATTLEFIELD",     //Построение игрового поля
+    PREPARE_BATTLEFIELD:    "PREPARE_BATTLEFIELD",       //Размещение плавсредств
+	GAME_START:             "GAME_START",                     //Сигнал к началу игры
+	GAME_STARTED:           "GAME_STARTED",              //Идёт игра
+	GAME_OVER:              "GAME_OVER"                  //Игра закончена
 }
 
 //Добавление игрока
-_game.addGamer = function (name, ai = false){
+_game.addGamer = function (name, ai){
 	var newGamer = new Gamer(name, ai);
     this.gamers.push(newGamer);
        
     if(this.gamers.length > 3) {
-        _game.state = _GAME_STATES.START;
+        _game.state = _GAME_STATES.CONSTRUCT_BATTLEFIELD;
     }
 
     _game.render();
@@ -72,7 +84,7 @@ _game.startGame = function() {
     }
 
     if(_game.gamers.length >= 2) {
-        _game.state = _GAME_STATES.START;
+        _game.state = _GAME_STATES.CONSTRUCT_BATTLEFIELD;
         _game.render(); 
 	}
 	else {
@@ -95,8 +107,14 @@ _game.render = function(){
         case _GAME_STATES.INIT_CONTINUE:
             _game.render_init_continue();
             break;
+        case _GAME_STATES.CONSTRUCT_BATTLEFIELD:
+            _game.render_construct_battlefield();
+            break;
+        case _GAME_STATES.PREPARE_BATTLEFIELD:
+            _game.render_prepare_battlefield();
+            break;
         case _GAME_STATES.START:
-            _game.render_start();
+            _game.render_game_start();
             break;
         case _GAME_STATES.GAME_STARTED:
             _game.render_game_started();
@@ -121,12 +139,11 @@ _game.render_init = function ()
     initMenuContainer.setAttribute('id', 'init-menu');
     gameContent.appendChild(initMenuContainer);
 
-
-
     this.nameGamerInput = document.createElement("input");
     this.nameGamerInput.setAttribute('class', "add-user");
     initMenuContainer.appendChild(this.nameGamerInput);
 
+    //Кнопка добавления игрока
     this.addGamerButton = document.createElement("button");
     this.addGamerButton.innerText = "Добавить игрока"
     this.addGamerButton.setAttribute('class', "btn add-user");
@@ -151,24 +168,24 @@ _game.render_init = function ()
         
     }
 
+    //Кнопка добавления бота
     this.addBotButton = document.createElement("button");
     this.addBotButton.innerText = "Добавить игрока AI"
     this.addBotButton.setAttribute('class', "btn add-bot");
+    initMenuContainer.appendChild(this.addBotButton);
     this.addBotButton.onclick = function(){
 
-        var botnames = ["Саша","Маша","Даша","Вася","Петя","Игорь","Макс","Таня","Ксюша","Котя","Люба"]
+        var botnames = ["Саша","Маша","Даша","Вася","Петя","Игорь","Макс","Таня","Ксюша","Котя","Люба","Сережа", "Питер"]
 
         var botname = botnames[Math.floor(Math.random() * botnames.length)] + " (AI)";
 
         self.addGamer(botname, true);
     }
-    initMenuContainer.appendChild(this.addBotButton);
 
     //Создаем список добавленных игроков
     this.gamersList = document.createElement("ul");
     this.gamersList.setAttribute('id', "gamers-list");
     initMenuContainer.appendChild(this.gamersList);
-
 
     self.state = _GAME_STATES.INIT_CONTINUE;
 }
@@ -205,7 +222,7 @@ _game.render_init_continue = function ()
 }
 
 //Отрисовка подготовки игры к старту
-_game.render_start = function ()
+_game.render_construct_battlefield = function ()
 {
     console.log('render_start');
     var gameContent = document.getElementById("game-content");
@@ -217,7 +234,7 @@ _game.render_start = function ()
 
     var gameBoardTableRow = document.createElement("tr");
     gameBoardTable.appendChild(gameBoardTableRow);
-    for(var i = 0; i < this.gamers.length; i++){
+    for(var i = 0; i < this.gamers.length; i++) {
         var gamer = this.gamers[i];
 
         if(gameBoardTableRow.childNodes.length == 2 || (this.gamers.length == 3 && gameBoardTableRow.childNodes.length == 1)) {
@@ -241,30 +258,182 @@ _game.render_start = function ()
         bfTableCell.setAttribute("colspan", "10");
         bfTableCell.innerText = gamer.name;
 
-        for(var i2 = 0; i2 < gamer.battleField.length; i2++) {
+        for(var rowIndex = 0; rowIndex < gamer.battleField.length; rowIndex++) {
 
-            var battleFieldRow = gamer.battleField[i2];
+            var bfRow = gamer.battleField[rowIndex];
 
             bfTableRow = document.createElement("tr");
             bfTable.appendChild(bfTableRow);
 
-            for(var j2 = 0; j2 < battleFieldRow.length; j2++) {
+            for(var colIndex = 0; colIndex < bfRow.length; colIndex++) {
+
+                var bfCell = bfRow[colIndex];
+
                 bfTableCell = document.createElement("td");
-                bfTableCell.setAttribute("class", "init");
+                
                 bfTableRow.appendChild(bfTableCell);
+
+                bfCell.td = bfTableCell;
+
+                bfCell.rowIndex = rowIndex;
+                bfCell.colIndex = colIndex;
+
+                bfCell.td.rowIndex = rowIndex;
+                bfCell.td.colIndex = colIndex;
             }
         }
 
         console.log(gamer);
         
-
         gameBoardTableRow.appendChild(gameBoardTableCell);
+    }
+
+    _game.state = _GAME_STATES.PREPARE_BATTLEFIELD;
+    _game.render();
+}
+
+
+function NewShip(rowIndex, colIndex, shipDimension, VerticalOrientation) {
+
+
+    var newShip = [];
+
+    var firstPoint = {
+        rowIndex: rowIndex,
+        colIndex: colIndex
+    }
+
+    var shift = 0;
+    if(rowIndex + shipDimension > 10)
+        shift = rowIndex + shipDimension - 10;
+
+    console.log('shift:' + shift);
+
+    while(shift > 0) {
+        console.log(rowIndex - shift)
+        newShip.push({
+            rowIndex: rowIndex - shift--,
+            colIndex: colIndex
+        });
+    }
+    console.log(newShip.length);
+    newShip.push(firstPoint);
+
+    while(newShip.length < shipDimension){
+        newShip.push({
+            rowIndex: ++rowIndex,
+            colIndex: colIndex
+        });
+    }
+    console.log(newShip);
+    return newShip;
+}
+
+var calculate_battlefield_state = function() {
+    for(var row_index = 0; row_index < this.battleField.length; row_index++) {
+        var bfRow = this.battleField[row_index];
+        for(var col_index = 0; col_index < bfRow.length; col_index++) {
+            var bfCell = bfRow[col_index];
+
+            bfCell.state = CELL_STATES.INIT;
+
+            for(var i = 0; i < this.ships.length; i++) {
+                var ship = this.ships[i];
+                for(var j = 0; j < ship.length; j++) {
+                    var point = ship[j];
+                    if(point.rowIndex == row_index && point.colIndex == col_index) {
+                        bfCell.state = CELL_STATES.SHIP;
+                    }
+                }
+            }
+
+
+
+            for(var i = 0; i < this.newship.length; i++) {
+                if(this.newship[i].rowIndex == row_index && this.newship[i].colIndex == col_index) {
+                    bfCell.state = CELL_STATES.NEW;
+                }
+            }
+
+        }
     }
 }
 
 
+function updateCell(bfCell){
+    if(!bfCell || !bfCell.state)
+    console.error('Ошибка!');
+
+    if(bfCell.state != bfCell.oldState) {
+        switch(bfCell.state) {
+            case CELL_STATES.INIT:
+                bfCell.td.setAttribute("class", "init");
+                break;
+            case CELL_STATES.NEW:
+                bfCell.td.setAttribute("class", "new");
+                break; 
+            case CELL_STATES.SHIP:
+                bfCell.td.setAttribute("class", "ship");
+                break; 
+            default:
+                bfCell.td.setAttribute("class", "default");
+                break;
+        }
+        bfCell.oldState = bfCell.state;
+    }
+    
+}
+
+var render_battlefield = function() {
+    console.log(this);
+    this.calculate_battlefield_state();
+
+
+
+    for(var row_index = 0; row_index < this.battleField.length; row_index++) {
+        var bfRow = this.battleField[row_index];
+        for(var col_index = 0; col_index < bfRow.length; col_index++) {
+            var bfCell = bfRow[col_index];
+
+            updateCell(bfCell);
+
+            var gamer = this;
+            bfCell.td.onmouseenter = function () { 
+                gamer.newship = NewShip(this.rowIndex, this.colIndex, 4, true);
+                gamer.render_battlefield();
+            }
+
+            bfCell.td.onclick = function () { 
+                gamer.ships.push(gamer.newship);
+                gamer.render_battlefield();
+            }
+        }
+    }
+}
+
 
 //Отрисовка подготовки игры к старту
+_game.render_prepare_battlefield = function ()
+{
+    console.log('render_prepare_battlefield');
+    var first_gamer = _game.gamers[0];
+
+
+
+    first_gamer.render_battlefield();
+    
+}
+
+//Отрисовка подготовки игры к старту
+_game.render_game_start = function ()
+{
+    console.log('render_game_started');
+    var gameContent = document.getElementById("game-content");
+    gameContent.innerText = "start";
+}
+
+
+//Отрисовка стартованной игры
 _game.render_game_started = function ()
 {
     console.log('render_game_started');
