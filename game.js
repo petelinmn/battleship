@@ -54,7 +54,7 @@ function playSound(name) {
 var CELL_STATES = {
     INIT:       "INIT",         //Просто пустая морская клетка
     NEW:        "NEW",          //Размещение нового корабля
-    WRONG:      "WRONG",        //ошибочная клетка
+    WRONG:      "WRONG",        //Ошибочная клетка
     SHIP:       "SHIP",         //Корабль
     BESIDE:     "BESIDE",       //Клетка рядом с кораблем
     PAST:       "PAST",         //Попадание мимо
@@ -76,7 +76,7 @@ function Gamer(name, ai) {
 
     this.newship = [];
 
-    this.shutChance = [];
+    this.hittings = [];
 
     this.battleField = [];
     for (var i = 0; i < 10; i++){
@@ -102,6 +102,10 @@ function Gamer(name, ai) {
     }
 
     this.addShip = function() {
+
+        if(this.ships.length >= 10)
+            return;
+
         for(var row_index = 0; row_index < this.battleField.length; row_index++) {
             var bfRow = this.battleField[row_index];
             for(var col_index = 0; col_index < bfRow.length; col_index++) {
@@ -129,7 +133,6 @@ function Gamer(name, ai) {
 
 
     this.randomCellClick = function () {
-        console.log('r2');
         var row_index = Math.floor(Math.random() * 9);
         var bfRow = this.battleField[row_index];
         
@@ -188,17 +191,28 @@ _game.initGame = function() {
         if(!_game.gamers || _game.gamers.length == 0)
             return;
 
+        var retGamer;
+        console.log(_game.gamers);
         switch(_game.state) {
             case _GAME_STATES.PREPARE_BATTLEFIELD:
-                for(var key in _game.gamers) {
-                    var gamer = _game.gamers[key];
-                    if(gamer.ships.length < 10)
+                for(var i = 0; i < _game.gamers.length; i++) {
+                    var gamer = _game.gamers[i];
+                    if(gamer.ships.length < 10) {
                         return gamer;
+                    }
                 }                    
+            break;
+            case _GAME_STATES.GAME_START:
+
             break;
         }
 
-        return _game.gamers[0];
+
+
+        if(!retGamer)
+            retGamer = _game.gamers[0];
+console.log(retGamer);
+        return retGamer;
     }
 }
 
@@ -429,7 +443,6 @@ function NewShip(rowIndex, colIndex, shipDimension, ai) {
     var vOrientation = _newShipOrientation == SHIP_ORIENTATION.VERTICAL;
     if(ai) {
         var rand = Math.random();
-        console.log(rand);
         vOrientation = rand < 0.5;
     }
 
@@ -472,6 +485,16 @@ var calculate_battlefield_state = function() {
                     if(point.rowIndex == row_index && point.colIndex == col_index) {
                         bfCell.state = CELL_STATES.SHIP;
                     }
+                }
+            }
+
+            for(var i = 0; i < this.hittings.length; i++) { 
+                var hitting = this.hittings[i];
+                if(hitting.rowIndex == row_index && hitting.colIndex == col_index) {
+                    if(bfCell.state == CELL_STATES.SHIP)
+                        bfCell.state = CELL_STATES.WOUNDED;
+                    else
+                        bfCell.state = CELL_STATES.PAST;
                 }
             }
         }
@@ -566,24 +589,24 @@ var calculate_battlefield_state = function() {
         }
     }
 
+    if(_game.state == _GAME_STATES.PREPARE_BATTLEFIELD)
+        for(var row_index = 0; row_index < this.battleField.length; row_index++) {
+            var bfRow = this.battleField[row_index];
+            for(var col_index = 0; col_index < bfRow.length; col_index++) {
+                var bfCell = bfRow[col_index];
 
-    for(var row_index = 0; row_index < this.battleField.length; row_index++) {
-        var bfRow = this.battleField[row_index];
-        for(var col_index = 0; col_index < bfRow.length; col_index++) {
-            var bfCell = bfRow[col_index];
-
-            for(var i = 0; i < this.newship.length; i++) {
-                if(this.newship[i].rowIndex == row_index && this.newship[i].colIndex == col_index) {
-                    if(bfCell.state == CELL_STATES.SHIP || bfCell.state == CELL_STATES.BESIDE) {
-                        bfCell.state = CELL_STATES.WRONG;
+                for(var i = 0; i < this.newship.length; i++) {
+                    if(this.newship[i].rowIndex == row_index && this.newship[i].colIndex == col_index) {
+                        if(bfCell.state == CELL_STATES.SHIP || bfCell.state == CELL_STATES.BESIDE) {
+                            bfCell.state = CELL_STATES.WRONG;
+                        }
+                        else
+                            bfCell.state = CELL_STATES.NEW;
                     }
-                    else
-                        bfCell.state = CELL_STATES.NEW;
                 }
-            }
 
+            }
         }
-    }
 }
 
 
@@ -657,9 +680,20 @@ var render_battlefield = function() {
                     }
                 }
 
-            bfCell.td.onclick = function () { 
-                gamer.newship = NewShip(this.rowIndex, this.colIndex, shipDimension, gamer.ai);
-                gamer.addShip();
+            if(_game.state == _GAME_STATES.PREPARE_BATTLEFIELD) {   
+                bfCell.td.onclick = function () { 
+                    gamer.newship = NewShip(this.rowIndex, this.colIndex, shipDimension, gamer.ai);
+                    gamer.addShip();
+                }
+            }
+            else if(_game.state == _GAME_STATES.GAME_START) {
+                bfCell.td.onclick = function () { 
+                    console.log('hitting');
+                    gamer.hittings.push({
+                        rowIndex: this.rowIndex,
+                        colIndex: this.colIndex
+                    })
+                }
             }
         }
     }
@@ -693,6 +727,28 @@ _game.render_prepare_battlefield = function ()
 _game.render_game_start = function ()
 {
     console.log('render_game_started');
+
+    var currentGamer = _game.getCurrentGamer();
+
+    //currentGamer.render_battlefield();
+
+    for(var key in currentGamer.targets){
+        var target = currentGamer.targets[key];
+        target.render_battlefield();
+    }
+/*
+    var i = 0;
+
+    while(true) {
+
+        if(!(currentGamer.ai && currentGamer.targets.length > 0 && ++i < 30))
+            break;
+
+        setTimeout(function() {
+            currentGamer.randomCellClick();
+        }, 1)
+
+    }*/
 }
 
 
