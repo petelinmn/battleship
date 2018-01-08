@@ -101,7 +101,7 @@ function Gamer(name, ai) {
         return resultShips;
     }
 
-    this.addShip = function() {
+    this.addShip = function(nomanual) {
 
         if(this.ships.length >= 10)
             return;
@@ -123,7 +123,9 @@ function Gamer(name, ai) {
 
         self.ships.push(self.newship);
         self.newship = [];
-        self.render_battlefield();
+
+        if(nomanual)
+            self.render_battlefield();
 
         if(self.ships.length == 10)
             _game.render();
@@ -133,6 +135,7 @@ function Gamer(name, ai) {
 
 
     this.randomCellClick = function () {
+        console.log('randomCellClick');
         var row_index = Math.floor(Math.random() * 9);
         var bfRow = this.battleField[row_index];
         
@@ -143,7 +146,7 @@ function Gamer(name, ai) {
         if(!bfCell || !bfCell.td || !bfCell.td.onclick)
             return;
 
-        var td = bfCell.td.onclick();
+        var td = bfCell.td.onclick(true);
     }
 }
 
@@ -191,8 +194,9 @@ _game.initGame = function() {
         if(!_game.gamers || _game.gamers.length == 0)
             return;
 
-        var retGamer;
-        console.log(_game.gamers);
+        var retGamer = _game.gamers[0];
+        
+        
         switch(_game.state) {
             case _GAME_STATES.PREPARE_BATTLEFIELD:
                 for(var i = 0; i < _game.gamers.length; i++) {
@@ -203,15 +207,17 @@ _game.initGame = function() {
                 }                    
             break;
             case _GAME_STATES.GAME_START:
-
+                retGamer.targets = [];
+                for(var key in _game.gamers)
+                {
+                    var target = _game.gamers[key];
+                    if(target != retGamer)
+                        retGamer.targets.push(target);
+                }
             break;
         }
 
-
-
-        if(!retGamer)
-            retGamer = _game.gamers[0];
-console.log(retGamer);
+            
         return retGamer;
     }
 }
@@ -679,20 +685,27 @@ var render_battlefield = function() {
                         gamer.render_battlefield();
                     }
                 }
-
+                console.log(_game.state);
             if(_game.state == _GAME_STATES.PREPARE_BATTLEFIELD) {   
-                bfCell.td.onclick = function () { 
+                bfCell.td.onclick = function (nomanual) { 
                     gamer.newship = NewShip(this.rowIndex, this.colIndex, shipDimension, gamer.ai);
-                    gamer.addShip();
+                    gamer.addShip(nomanual);
                 }
             }
             else if(_game.state == _GAME_STATES.GAME_START) {
-                bfCell.td.onclick = function () { 
+                console.log('set onclick start');
+                bfCell.td.onclick = function (nomanual) { 
+
+                    //if(nomanual)
+                    //    return;
+
                     console.log('hitting');
                     gamer.hittings.push({
                         rowIndex: this.rowIndex,
                         colIndex: this.colIndex
                     })
+
+                    console.log(gamer.hittings);
                 }
             }
         }
@@ -709,16 +722,28 @@ _game.render_prepare_battlefield = function ()
     currentGamer.render_battlefield();
     var i = 0;
 
-    while(true) {
+    if(currentGamer.ai)
+        while(true) {
 
-        if(!(currentGamer.ai && currentGamer.ships < 10 && ++i < 500))
-            break;
+            if(currentGamer.ships == 10)
+                break;
 
-        setTimeout(function() {
-            currentGamer.randomCellClick();
-        }, 1)
+            if(++i > 200){
+                console.log('too long!!!');
+                break;
+            }
 
-    }
+            //if(!((currentGamer.ships < 10 || ++i < 300)))
+            //    break;
+
+            if(_game.state != _GAME_STATES.PREPARE_BATTLEFIELD)
+                break;
+
+            setTimeout(function() {
+                currentGamer.randomCellClick();
+            }, 1)
+
+        }
 
     console.log(currentGamer);
 }
@@ -726,7 +751,7 @@ _game.render_prepare_battlefield = function ()
 //Отрисовка подготовки игры к старту
 _game.render_game_start = function ()
 {
-    console.log('render_game_started');
+    console.log('render_game_start');
 
     var currentGamer = _game.getCurrentGamer();
 
