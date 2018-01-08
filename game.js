@@ -1,4 +1,56 @@
 
+var SOUNDS = {
+    SHUT: "SHUT",
+    RELOAD: "RELOAD",
+    WOUNDED: "WOUNDED",
+    DESTROYED: "DESTROYED",
+}
+
+var SHIP_ORIENTATION = {
+    VERTICAL: "VERTICAL",
+    HORIZONTAL: "HORIZONTAL",
+}
+
+var _newShipOrientation = SHIP_ORIENTATION.VERTICAL;
+
+//Проигрывание звуковых эффектов
+function playSound(name) {
+
+    return;
+
+    if(!name)
+        return;
+
+    if(msie && msie < 9)
+        return;
+
+    if(typeof Audio !== 'function')
+        return;
+
+    var filename;
+
+    var audio;
+    switch(name)
+    {
+        case SOUNDS.SHUT:
+            audio = new Audio('sound/shut.mp3');
+            break;
+        case SOUNDS.RELOAD:
+            audio = new Audio('sound/reload.mp3');
+            break;
+        case SOUNDS.WOUNDED:
+            audio = new Audio('sound/wounded.mp3');
+            break;
+        case SOUNDS.DESTROYED:
+            audio = new Audio('sound/destroyed.mp3');
+            break;
+    }
+    
+    if(audio)
+        audio.play();
+}
+
+
 var CELL_STATES = {
     INIT:       "INIT",         //Просто пустая морская клетка
     NEW:        "NEW",          //Размещение нового корабля
@@ -24,6 +76,8 @@ function Gamer(name, ai) {
 
     this.newship = [];
 
+    this.shutChance = [];
+
     this.battleField = [];
     for (var i = 0; i < 10; i++){
         var row = [];
@@ -33,6 +87,60 @@ function Gamer(name, ai) {
             });
         }
         this.battleField.push(row);
+    }
+
+    var self = this;
+    this.getShipsWithDimension = function(dimension) {
+
+        var resultShips = [];
+        for(var i = 0; i < self.ships.length; i++) {
+            var ship = self.ships[i];
+            if(ship.length == dimension)
+                resultShips.push(ship);
+        }
+        return resultShips;
+    }
+
+    this.addShip = function() {
+        for(var row_index = 0; row_index < this.battleField.length; row_index++) {
+            var bfRow = this.battleField[row_index];
+            for(var col_index = 0; col_index < bfRow.length; col_index++) {
+                var bfCell = bfRow[col_index]; 
+
+                if(bfCell.state == CELL_STATES.SHIP || bfCell.state == CELL_STATES.BESIDE || bfCell.state == CELL_STATES.WRONG) {
+                    for(var i = 0; i < self.newship.length; i++) {
+                        var partShip = self.newship[i];
+                        if (partShip.colIndex == col_index && partShip.rowIndex == row_index)
+                            return false;
+                    }
+                }
+            }
+        }
+
+        self.ships.push(self.newship);
+        self.newship = [];
+        self.render_battlefield();
+
+        if(self.ships.length == 10)
+            _game.render();
+
+        return true;
+    }
+
+
+    this.randomCellClick = function () {
+        console.log('r2');
+        var row_index = Math.floor(Math.random() * 9);
+        var bfRow = this.battleField[row_index];
+        
+        var col_index = Math.floor(Math.random() * 9);
+
+        var bfCell = this.battleField[row_index][col_index];
+
+        if(!bfCell || !bfCell.td || !bfCell.td.onclick)
+            return;
+
+        var td = bfCell.td.onclick();
     }
 }
 
@@ -71,35 +179,53 @@ _game.initGame = function() {
     _game.state = _GAME_STATES.INIT,
     _game.gamers = []
 
+    _game.currentGamer = null;
+
     _game.render();
+
+    _game.getCurrentGamer = function() {
+
+        if(!_game.gamers || _game.gamers.length == 0)
+            return;
+
+        switch(_game.state) {
+            case _GAME_STATES.PREPARE_BATTLEFIELD:
+                for(var key in _game.gamers) {
+                    var gamer = _game.gamers[key];
+                    if(gamer.ships.length < 10)
+                        return gamer;
+                }                    
+            break;
+        }
+
+        return _game.gamers[0];
+    }
 }
 
 //Старт игры
 _game.startGame = function() {
 
-    if(!_game || _game.state || _game.gamers)
-    {
-        console.log("Нельзя запустить игру, если она не создана!");
-        return;
-    }
-
-    if(_game.gamers.length >= 2) {
-        _game.state = _GAME_STATES.CONSTRUCT_BATTLEFIELD;
-        _game.render(); 
-	}
-	else {
-		alert('Игроков недостаточно!');
-	}
+    
 }
 
 //Отрисовка
 _game.render = function(){
-    console.log(this.state);
     if(!this.state){
         console.log('Не указано состояние объекта!');
         return;
     }
 
+    if(this.state == _GAME_STATES.PREPARE_BATTLEFIELD) {
+        var battlefieldPrepared = true;
+        for(var key in this.gamers) {
+            if(this.gamers[key].ships.length < 10)
+                battlefieldPrepared = false;
+        }
+
+        if(battlefieldPrepared)
+            this.state = _GAME_STATES.GAME_START;
+    }
+    
     switch(this.state){
         case _GAME_STATES.INIT:
             _game.render_init();
@@ -113,7 +239,7 @@ _game.render = function(){
         case _GAME_STATES.PREPARE_BATTLEFIELD:
             _game.render_prepare_battlefield();
             break;
-        case _GAME_STATES.START:
+        case _GAME_STATES.GAME_START:
             _game.render_game_start();
             break;
         case _GAME_STATES.GAME_STARTED:
@@ -282,8 +408,6 @@ _game.render_construct_battlefield = function ()
                 bfCell.td.colIndex = colIndex;
             }
         }
-
-        console.log(gamer);
         
         gameBoardTableRow.appendChild(gameBoardTableCell);
     }
@@ -293,43 +417,47 @@ _game.render_construct_battlefield = function ()
 }
 
 
-function NewShip(rowIndex, colIndex, shipDimension, VerticalOrientation) {
-
-
+//Новый корабль
+function NewShip(rowIndex, colIndex, shipDimension, ai) {
     var newShip = [];
 
     var firstPoint = {
         rowIndex: rowIndex,
         colIndex: colIndex
     }
+    
+    var vOrientation = _newShipOrientation == SHIP_ORIENTATION.VERTICAL;
+    if(ai) {
+        var rand = Math.random();
+        console.log(rand);
+        vOrientation = rand < 0.5;
+    }
 
     var shift = 0;
-    if(rowIndex + shipDimension > 10)
-        shift = rowIndex + shipDimension - 10;
-
-    console.log('shift:' + shift);
+    var index = vOrientation ? rowIndex : colIndex;
+    if(index + shipDimension > 10)
+        shift = index + shipDimension - 10;
 
     while(shift > 0) {
-        console.log(rowIndex - shift)
         newShip.push({
-            rowIndex: rowIndex - shift--,
-            colIndex: colIndex
+            rowIndex: vOrientation ? rowIndex - shift-- : rowIndex,
+            colIndex: vOrientation ? colIndex : colIndex - shift--
         });
     }
-    console.log(newShip.length);
+    
     newShip.push(firstPoint);
 
     while(newShip.length < shipDimension){
         newShip.push({
-            rowIndex: ++rowIndex,
-            colIndex: colIndex
+            rowIndex: vOrientation ? ++rowIndex : rowIndex,
+            colIndex: vOrientation ? colIndex : ++colIndex
         });
     }
-    console.log(newShip);
     return newShip;
 }
 
 var calculate_battlefield_state = function() {
+
     for(var row_index = 0; row_index < this.battleField.length; row_index++) {
         var bfRow = this.battleField[row_index];
         for(var col_index = 0; col_index < bfRow.length; col_index++) {
@@ -346,12 +474,111 @@ var calculate_battlefield_state = function() {
                     }
                 }
             }
+        }
+    }
 
 
+    for(var row_index = 0; row_index < this.battleField.length; row_index++) {
+        var bfRow = this.battleField[row_index];
+
+        var lastRow;
+        if(row_index > 0)
+            lastRow = this.battleField[row_index - 1];
+        
+        var nextRow;
+        if(row_index < 9)
+            nextRow = this.battleField[row_index + 1];
+
+        for(var col_index = 0; col_index < bfRow.length; col_index++) {
+            var bfCell = bfRow[col_index];
+
+            if(bfCell.state == CELL_STATES.WRONG)
+                continue;
+
+            if(bfCell.state == CELL_STATES.SHIP)
+                continue;
+
+            var curCell;
+            if(col_index > 0) {
+                curCell = bfRow[col_index - 1];
+                if(curCell.state == CELL_STATES.SHIP || curCell.state == CELL_STATES.WRONG) {
+                    bfCell.state = CELL_STATES.BESIDE;
+                    continue;
+                }
+            }
+
+            if(col_index < 9) {
+                curCell = bfRow[col_index + 1];
+                if(curCell.state == CELL_STATES.SHIP || curCell.state == CELL_STATES.WRONG) {
+                    bfCell.state = CELL_STATES.BESIDE;
+                    continue;
+                }
+            }
+            
+
+            if(lastRow) {
+                if(col_index > 0) {
+                    curCell = lastRow[col_index - 1];
+                    if(curCell.state == CELL_STATES.SHIP || curCell.state == CELL_STATES.WRONG) {
+                        bfCell.state = CELL_STATES.BESIDE;
+                        continue;
+                    }
+                }
+
+                curCell = lastRow[col_index];
+                if(curCell.state == CELL_STATES.SHIP || curCell.state == CELL_STATES.WRONG) {
+                    bfCell.state = CELL_STATES.BESIDE;
+                    continue;
+                }
+
+                if(col_index < 9) {
+                    curCell = lastRow[col_index + 1];
+                    if(curCell.state == CELL_STATES.SHIP || curCell.state == CELL_STATES.WRONG) {
+                        bfCell.state = CELL_STATES.BESIDE;
+                        continue;
+                    }
+                }
+            }
+
+            if(nextRow) {
+                if(col_index > 0) {
+                    curCell = nextRow[col_index - 1];
+                    if(curCell.state == CELL_STATES.SHIP || curCell.state == CELL_STATES.WRONG) {
+                        bfCell.state = CELL_STATES.BESIDE;
+                        continue;
+                    }
+                }
+
+                curCell = nextRow[col_index];
+                if(curCell.state == CELL_STATES.SHIP || curCell.state == CELL_STATES.WRONG) {
+                    bfCell.state = CELL_STATES.BESIDE;
+                    continue;
+                }
+
+                curCell = nextRow[col_index + 1];
+                if(col_index < 9) {
+                    if(curCell.state == CELL_STATES.SHIP || curCell.state == CELL_STATES.WRONG) {
+                        bfCell.state = CELL_STATES.BESIDE;
+                        continue;
+                    }
+                }
+            }
+        }
+    }
+
+
+    for(var row_index = 0; row_index < this.battleField.length; row_index++) {
+        var bfRow = this.battleField[row_index];
+        for(var col_index = 0; col_index < bfRow.length; col_index++) {
+            var bfCell = bfRow[col_index];
 
             for(var i = 0; i < this.newship.length; i++) {
                 if(this.newship[i].rowIndex == row_index && this.newship[i].colIndex == col_index) {
-                    bfCell.state = CELL_STATES.NEW;
+                    if(bfCell.state == CELL_STATES.SHIP || bfCell.state == CELL_STATES.BESIDE) {
+                        bfCell.state = CELL_STATES.WRONG;
+                    }
+                    else
+                        bfCell.state = CELL_STATES.NEW;
                 }
             }
 
@@ -375,6 +602,12 @@ function updateCell(bfCell){
             case CELL_STATES.SHIP:
                 bfCell.td.setAttribute("class", "ship");
                 break; 
+            case CELL_STATES.BESIDE:
+                bfCell.td.setAttribute("class", "beside");
+                break; 
+            case CELL_STATES.WRONG:
+                bfCell.td.setAttribute("class", "wrong");
+                break; 
             default:
                 bfCell.td.setAttribute("class", "default");
                 break;
@@ -385,7 +618,7 @@ function updateCell(bfCell){
 }
 
 var render_battlefield = function() {
-    console.log(this);
+
     this.calculate_battlefield_state();
 
 
@@ -398,14 +631,35 @@ var render_battlefield = function() {
             updateCell(bfCell);
 
             var gamer = this;
-            bfCell.td.onmouseenter = function () { 
-                gamer.newship = NewShip(this.rowIndex, this.colIndex, 4, true);
-                gamer.render_battlefield();
-            }
+
+            var shipDimension = 4
+            var shipsDim = gamer.getShipsWithDimension(shipDimension);
+            if(shipsDim.length > 0)
+                shipDimension = 3;
+            
+            shipsDim = gamer.getShipsWithDimension(shipDimension);
+            if(shipsDim.length > 1)
+                shipDimension = 2;
+
+            shipsDim = gamer.getShipsWithDimension(shipDimension);
+            if(shipsDim.length > 2)
+                shipDimension = 1;
+
+            shipsDim = gamer.getShipsWithDimension(shipDimension);
+            if(shipsDim.length > 3)
+                shipDimension = -1;
+            
+            if(!this.ai)
+                bfCell.td.onmouseenter = function () { 
+                    if(gamer.ships.length < 10 && shipDimension > 0) {
+                        gamer.newship = NewShip(this.rowIndex, this.colIndex, shipDimension, gamer.ai);
+                        gamer.render_battlefield();
+                    }
+                }
 
             bfCell.td.onclick = function () { 
-                gamer.ships.push(gamer.newship);
-                gamer.render_battlefield();
+                gamer.newship = NewShip(this.rowIndex, this.colIndex, shipDimension, gamer.ai);
+                gamer.addShip();
             }
         }
     }
@@ -416,20 +670,29 @@ var render_battlefield = function() {
 _game.render_prepare_battlefield = function ()
 {
     console.log('render_prepare_battlefield');
-    var first_gamer = _game.gamers[0];
+    var currentGamer = _game.getCurrentGamer();
 
+    currentGamer.render_battlefield();
+    var i = 0;
 
+    while(true) {
 
-    first_gamer.render_battlefield();
-    
+        if(!(currentGamer.ai && currentGamer.ships < 10 && ++i < 500))
+            break;
+
+        setTimeout(function() {
+            currentGamer.randomCellClick();
+        }, 1)
+
+    }
+
+    console.log(currentGamer);
 }
 
 //Отрисовка подготовки игры к старту
 _game.render_game_start = function ()
 {
     console.log('render_game_started');
-    var gameContent = document.getElementById("game-content");
-    gameContent.innerText = "start";
 }
 
 
@@ -451,3 +714,4 @@ _game.render_game_over = function ()
 
 
 _game.initGame();
+

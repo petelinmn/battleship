@@ -128,6 +128,14 @@ table.battlefield > tr > td.ship {
 	background-color: black;
 }
 
+table.battlefield > tr > td.wrong {
+	background-color: indianred;
+}
+
+table.battlefield > tr > td.beside {
+	background-color: #cbfdff;
+}
+
 
 table.battlefield > tr > td.wounded {
 	background-color: rgb(92, 16, 16);
