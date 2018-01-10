@@ -301,10 +301,9 @@ function Gamer(name, ai) {
 						debugger;
 							
 					var prevPoint;
-					var verticalShip	;
 					for(var key in wounded_body) {
 						var point = wounded_body[key];
-						if(wounded_body.length == 1 || !prevPoint) {
+						if(wounded_body.length == 1) {
 							if(Math.random() >= 0.5) {
 							
 								if(point.rowIndex == 0)
@@ -321,6 +320,7 @@ function Gamer(name, ai) {
 								shut_col = point.colIndex;
 							}
 							else {
+							
 								if(point.colIndex == 0)
 									shut_col = point.colIndex + 1;	
 								else if(point.colIndex == 9)
@@ -338,11 +338,14 @@ function Gamer(name, ai) {
 							break;
 						}
 						else {
-							if(prevPoint) {
-								verticalShip = prevPoint.rowIndex < point.rowIndex;
+							
+							if(!prevPoint) {
+								prevPoint = point;
+								break;
 							}
 							
-							if(verticalShip) {
+							//Если фигура вертикальная
+							if(prevPoint.rowIndex < point.rowIndex) {
 								shut_col = wounded_body[0].colIndex;
 								if(wounded_body[0].rowIndex == 0)
 									shut_row = wounded_body[wounded_body.length - 1].rowIndex + 1;
@@ -355,7 +358,7 @@ function Gamer(name, ai) {
 										shut_row = wounded_body[wounded_body.length - 1].rowIndex + 1;
 								}
 							}
-							else
+							else //если горизонтальная
 							{
 								shut_row = wounded_body[0].rowIndex;
 								if(wounded_body[0].colIndex == 0)
@@ -412,7 +415,7 @@ function Gamer(name, ai) {
 
 					
 				}
-			}},900);
+			}}, 2000);
 	}
 }
 
@@ -544,7 +547,7 @@ _game.getCurrentGamer = function(withoutUpdate) {
 				
 				if(replaceRetGamer) {
 					retGamer = target;
-					playSound(SOUNDS.RELOAD);
+					//playSound(SOUNDS.RELOAD);
 					break;
 				}
 				
@@ -770,21 +773,14 @@ _game.render_construct_battlefield = function ()
             this.orientButton.setAttribute('class', 'btn');
             var orientButton = this.orientButton;
             this.orientButton.onclick = function() {
-                if(_newShipOrientation == SHIP_ORIENTATION.HORIZONTAL) {
-                    _newShipOrientation = SHIP_ORIENTATION.VERTICAL;
-                }
-                else {
-                    _newShipOrientation = SHIP_ORIENTATION.HORIZONTAL;
-                }
+				_newShipOrientation = _newShipOrientation == SHIP_ORIENTATION.VERTICAL ? 
+					SHIP_ORIENTATION.HORIZONTAL : SHIP_ORIENTATION.VERTICAL;
             }
 
             this.toolTD.appendChild(this.orientButton);
 
-
             gameBoardTableRow.appendChild(this.toolTD);
         }
-
-
 
         var gamer = this.gamers[i];
 
@@ -1069,7 +1065,6 @@ function updateCell(bfCell, gamer){
                 bfCell.td.setAttribute("class", "destroyed");
                 break; 
 			case CELL_STATES.PAST:
-                //bfCell.td.setAttribute("class", "past");
 				bfCell.td.style.fontSize = "medium";
 				bfCell.td.style.textAlign = "center";
 				bfCell.td.innerText = '•';
@@ -1215,7 +1210,8 @@ _game.render_game_start = function ()
 	}
 	
 	if(countGamersInGame < 2) {
-		alert('game_over');
+		if(confirm('Игра окончена!'))
+			_game.initGame();
 	}
 }
 
