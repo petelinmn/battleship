@@ -33,7 +33,7 @@ if(msie)
     }
 
 
-if(msie && msie < 8)
+if(msie && msie < 9)
 {
     document.body.innerHTML = "<h3>Ошибка - старая версия браузера!</h3>" 
     document.execCommand('Stop');
