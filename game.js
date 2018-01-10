@@ -1,4 +1,10 @@
 
+/*
+Тип игры:
+AI_ONLY 	- играют только боты, все игровые поля открыты для наблюдения
+HUMAN_ONLY 	- играют только люди, все игровые поля закрыты для наблюдения
+ALL 		- смешанная игра, если игрок человек один его игровое поле открыто для наблюдения, если больше - все игровые поля закрыты для наблюдения
+*/
 var GAME_TYPE = {
     AI_ONLY:    "AI_ONLY",
     HUMAN_ONLY: "HUMAN_ONLY",
@@ -70,22 +76,19 @@ var CELL_STATES = {
 
 function Gamer(name, ai) {
 
+	this.name = name;
     this.lost = false;
-
-    this.name = name;
-    
     this.ai = ai ? ai : false;
 
     this.render_battlefield = render_battlefield;
     this.calculate_battlefield_state = calculate_battlefield_state;
 
     this.ships = [];
-
     this.newship = [];
-
     this.hittings = [];
 
     this.battleField = [];
+	//Инициализация игрового поля
     for (var i = 0; i < 10; i++){
         var row = [];
         for (var j = 0; j < 10; j++){
@@ -97,6 +100,7 @@ function Gamer(name, ai) {
     }
 
     var self = this;
+	//Получить все корабли заданной палубности
     this.getShipsWithDimension = function(dimension) {
 
         var resultShips = [];
@@ -108,11 +112,13 @@ function Gamer(name, ai) {
         return resultShips;
     }
 
+	//Добавить корабль
     this.addShip = function(nomanual) {
 
         if(this.ships.length >= 10)
             return;
 
+		//Проверим можно ли создать новый корабль (this.newship)
         for(var row_index = 0; row_index < this.battleField.length; row_index++) {
             var bfRow = this.battleField[row_index];
             for(var col_index = 0; col_index < bfRow.length; col_index++) {
@@ -128,9 +134,11 @@ function Gamer(name, ai) {
             }
         }
 
+		
         self.ships.push(self.newship);
         self.newship = [];
 
+		//Если корабль создает человек, перерисуем его поле
         if(nomanual)
             self.render_battlefield();
 
@@ -140,14 +148,23 @@ function Gamer(name, ai) {
         return true;
     }
 	
+	//Добавляем выстрел по игровому полю игрока
 	this.addHitting = function(row, col) {
 	
 		var soundName = SOUNDS.SHUT;	
 	
-		this.hittings.push({
-			rowIndex: row,
-			colIndex: col
-		});
+		var exist = false;
+		for(var key in this.hittings) {
+			if(this.hittings[key].rowIndex == row && this.hittings[key].colIndex == col) {
+				exist = true;
+			}
+		}
+	
+		if(!exist)
+			this.hittings.push({
+				rowIndex: row,
+				colIndex: col
+			});
 		
 		isHitting = false;
 		
@@ -203,7 +220,7 @@ function Gamer(name, ai) {
 					shutter.targets.push(targets[key]);
 			}
             
-            var caption = "Стреляет:" + shutter.name + " (" + shutter.targets.length + ")";
+            var caption = shutter.name + " (" + shutter.targets.length + ")";
             if(shutter.targets.length == 0)
                 caption = shutter.name;
 
@@ -226,7 +243,7 @@ function Gamer(name, ai) {
 		playSound(soundName);
 	}
 
-
+	//Клик наугад по игровому полю компьютером
     this.randomCellClick = function () {
         var row_index = Math.floor(Math.random() * 10);
         var bfRow = this.battleField[row_index];
@@ -241,73 +258,161 @@ function Gamer(name, ai) {
         var td = bfCell.td.onclick(true);
     }
     
-    
+    //Выстрел компьютера
 	this.aiShut = function () { 
+	
         var self = this;
-    setTimeout(function() {
-        if(self.targets.length == 0)
-            return;
+		//Стрельба происходит с интервалом
+		setTimeout(function() {
+			if(self.targets.length == 0)
+				return;
+				
+			var shut_row = -1;
+			var shut_col = -1;
 
-        var wounded_body = [];
-		for(var key in self.targets){
-            var target = self.targets[key];
-			for(var key_ship in target.ships) {
-                var ship = target.ships[key_ship];
-                if(ship.wounded && !ship.destroyed) {
-                    for(var hit_key in target.hittings) {
-                        var hitting = target.hittings[hit_key];
+			var wounded_body = [];
+			for(var key in self.targets){
+				var target = self.targets[key];
+				for(var key_ship in target.ships) {
+					var ship = target.ships[key_ship];
+					if(ship.wounded && !ship.destroyed) {
+						for(var p_index in ship) {
+							var point = ship[p_index];
+							for(var hit_key in target.hittings) {
+								var hitting = target.hittings[hit_key];
 
-                        for(var p_index in ship) {
-                            var point = ship[p_index];
-                            if(hitting.rowIndex == point.rowIndex && hitting.colIndex == point.colIndex) {
-                                wounded_body.push(point);
-                            }
-                        }
-                    }
-                }
-            }
+								
+									if(hitting.rowIndex == point.rowIndex && hitting.colIndex == point.colIndex) {
+										wounded_body.push(point);
+									}
+							}
+						}
+					}
+					
+					if(wounded_body.length > 0)
+						break;
+				}
+				
+				if(wounded_body.length > 0) {
+				var counter = 0;
+				while(shut_row < 0 && shut_col < 0) {
+							
+					if(++counter > 500) 
+						debugger;
+							
+					var prevPoint;
+					var verticalShip	;
+					for(var key in wounded_body) {
+						var point = wounded_body[key];
+						if(wounded_body.length == 1 || !prevPoint) {
+							if(Math.random() >= 0.5) {
+							
+								if(point.rowIndex == 0)
+									shut_row = point.rowIndex + 1;	
+								else if(point.rowIndex == 9)
+									shut_row = point.rowIndex - 1;	
+								else {
+									if(Math.random() >= 0.5)
+										shut_row = point.rowIndex - 1;
+									else 
+										shut_row = point.rowIndex + 1;		
+								}
+								
+								shut_col = point.colIndex;
+							}
+							else {
+								if(point.colIndex == 0)
+									shut_col = point.colIndex + 1;	
+								else if(point.colIndex == 9)
+									shut_col = point.colIndex - 1;
+								else {
+									if(Math.random() >= 0.5)
+										shut_col = point.colIndex - 1;
+									else 
+										shut_col = point.colIndex + 1;		
+								}
 
-            if(wounded_body.length > 0){
-                for(var key in wounded_body) {
-                    //var point = wounded_body[key];
+								shut_row = point.rowIndex;									
+							}
 
-                    //Здесь нужно досчитать куда стрелять. а пока AI стреляет наугад
-                }
-            }
+							break;
+						}
+						else {
+							if(prevPoint) {
+								verticalShip = prevPoint.rowIndex < point.rowIndex;
+							}
+							
+							if(verticalShip) {
+								shut_col = wounded_body[0].colIndex;
+								if(wounded_body[0].rowIndex == 0)
+									shut_row = wounded_body[wounded_body.length - 1].rowIndex + 1;
+								else if (wounded_body[wounded_body.length - 1].rowIndex == 9)
+									shut_row = wounded_body[0].rowIndex - 1;
+								else {
+									if(Math.random() >= 0.5)
+										shut_row = wounded_body[0].rowIndex - 1;
+									else
+										shut_row = wounded_body[wounded_body.length - 1].rowIndex + 1;
+								}
+							}
+							else
+							{
+								shut_row = wounded_body[0].rowIndex;
+								if(wounded_body[0].colIndex == 0)
+									shut_col = wounded_body[wounded_body.length - 1].colIndex + 1;
+								else if (wounded_body[wounded_body.length - 1].colIndex == 9)
+									shut_col = wounded_body[0].colIndex - 1;
+								else {
+									if(Math.random() >= 0.5)
+										shut_col = wounded_body[0].colIndex - 1;
+									else
+										shut_col = wounded_body[wounded_body.length - 1].colIndex + 1;
+								}
+							}
+						}
+						prevPoint = point;
+					}
+					
+					for(var key in target.hittings) {
+							var hitting = target.hittings[key];
+							if(hitting.rowIndex == shut_row && hitting.colIndex == shut_col) {
+								shut_row = -1;
+								shut_col = -1;
+								break;
+							}
+						}
+				}
+				}
+				
+				
 
-            //Выстрел наугад
-            var shut_row;
-            var shut_col;
+				//Выстрел наугад
+				var i = 0;
+				
+				if(shut_col < 0 || shut_row < 0)
+					while(true) {
+						shut_row = Math.floor(Math.random() * 10);
+						shut_col = Math.floor(Math.random() * 10);
 
-            var i = 0;
-            while(true) {
-                shut_row = Math.floor(Math.random() * 10);
-                shut_col = Math.floor(Math.random() * 10);
+						for(var key in target.hittings) {
+							var hitting = target.hittings[key];
+							if(hitting.rowIndex == shut_row && hitting.colIndex == shut_col)
+								continue;
+						}
 
-                if(++i > 100) {
-                    console.error('Ошибка! превышено допустимое количество выстрелов!')
-                    break;
-                }
+						break;
+					}
+				
 
-                for(var key in target.hittings) {
-                    var hitting = target.hittings[key];
-                    if(hitting.rowIndex == shut_row && hitting.colIndex == shut_col)
-                        continue;
-                }
+				var td = target.battleField[shut_row][shut_col].td;
+				if(td && td.onclick) {
+					td.onclick();
+					self.aiShut();
+					return;
 
-                break;
-            }
-
-            var td = target.battleField[shut_row][shut_col].td;
-            if(td && td.onclick) {
-                td.onclick();
-                self.aiShut();
-                //setTimeout(function(){ console.log(3333333); self.aiShut(); }, 3000)
-                return;
-
-                
-            }
-		}},3000);
+					
+				}
+			}},900);
 	}
 }
 
@@ -327,6 +432,7 @@ var _GAME_STATES = {
 	GAME_OVER:              "GAME_OVER"                  //Игра закончена
 }
 
+//Число игроков ботов
 _game.countGamersAI = function() {
     var count = 0;
     for(var key in this.gamers){
@@ -337,6 +443,7 @@ _game.countGamersAI = function() {
     return count;
 }
 
+//Число игроков людей
 _game.countGamersHuman = function() {
     var count = 0;
     for(var key in this.gamers){
@@ -353,14 +460,15 @@ _game.addGamer = function (name, ai){
     this.gamers.push(newGamer);
        
     if(this.gamers.length > 3) {
-        _game.try_start();
+        _game.constructBattlefields();
         return;
     }
 
     _game.render();  
 }	
 
-_game.try_start = function() {
+//Игроки созданы, переходим к коструированию игровых полей
+_game.constructBattlefields = function() {
     _game.state = _GAME_STATES.CONSTRUCT_BATTLEFIELD;
     isAI = false;
     isHuman = false;
@@ -372,6 +480,7 @@ _game.try_start = function() {
             isHuman = true;
     }
 
+	//Определяем тип игры
     if(isAI && isHuman)
         _game.type= GAME_TYPE.ALL;
     else if(isAI)
@@ -386,95 +495,94 @@ _game.try_start = function() {
 //Инициализация игры
 _game.initGame = function() {
 
-    _game.state = _GAME_STATES.INIT,
-    _game.gamers = []
+    _game.state = _GAME_STATES.INIT;
+    _game.gamers = [];
 
     _game.currentGamer = null;
 
     _game.render();
+}
 
-    _game.getCurrentGamer = function(withoutUpdate) {
+//Текущий игрок
+_game.getCurrentGamer = function(withoutUpdate) {
 
-		if(withoutUpdate) {
-			if(_game.currentUser)
-                return _game.currentUser;
-        }
-        if(!_game.gamers || _game.gamers.length == 0)
-            return;
+	if(withoutUpdate) {
+		if(_game.currentUser)
+			return _game.currentUser;
+	}
+	if(!_game.gamers || _game.gamers.length == 0)
+		return;
 
-        var retGamer = _game.gamers[0];
-        var i = 0;
-        while(retGamer.lost){
-            var i_gamer = _game.gamers[++i];
-            if(!i_gamer)
-                break;
-            
-            retGamer = i_gamer;
-        }
-        
-        switch(_game.state) {
-            case _GAME_STATES.PREPARE_BATTLEFIELD:
-                for(var i = 0; i < _game.gamers.length; i++) {
-                    var gamer = _game.gamers[i];
-                    if(gamer.ships.length < 10) {
-                        return gamer;
-                    }
-                }                    
-            break;
-            case _GAME_STATES.GAME_START:
+	var retGamer = _game.gamers[0];
+	var i = 0;
+	while(retGamer.lost){
+		var i_gamer = _game.gamers[++i];
+		if(!i_gamer)
+			break;
+		
+		retGamer = i_gamer;
+	}
+	
+	switch(_game.state) {
+		case _GAME_STATES.PREPARE_BATTLEFIELD:
+			for(var i = 0; i < _game.gamers.length; i++) {
+				var gamer = _game.gamers[i];
+				if(gamer.ships.length < 10) {
+					return gamer;
+				}
+			}                    
+		break;
+		case _GAME_STATES.GAME_START:
+		
+			var replaceRetGamer = false;
+			for(var key in _game.gamers)
+			{
+				var target = _game.gamers[key];
+				
+				if(target.lost)
+					continue;
+				
+				if(replaceRetGamer) {
+					retGamer = target;
+					playSound(SOUNDS.RELOAD);
+					break;
+				}
+				
+				if(target == _game.currentUser)
+					replaceRetGamer = true;
+			}
 			
-				var replaceRetGamer = false;
-				for(var key in _game.gamers)
-                {
-                    var target = _game.gamers[key];
-                    
-                    if(target.lost)
-                        continue;
-					
-					if(replaceRetGamer) {
-                        retGamer = target;
-                        playSound(SOUNDS.RELOAD);
-						break;
-					}
-                    
-                    if(target == _game.currentUser)
-                        replaceRetGamer = true;
-                }
-				
-                var targets = [];
-                for(var key in _game.gamers)
-                {
-                    var target = _game.gamers[key];
-                    if(target != retGamer && !target.lost)
-                        targets.push(target);
-                }
-				
-				retGamer.targets = targets;
-            break;
-        }
+			var targets = [];
+			for(var key in _game.gamers)
+			{
+				var target = _game.gamers[key];
+				if(target != retGamer && !target.lost)
+					targets.push(target);
+			}
+			
+			retGamer.targets = targets;
+		break;
+	}
 
-		if(_game.currentUser && _game.currentUser.td) {
-			_game.currentUser.td.style.color = "black";
-            retGamer.td.style.color = "red";
-            //retGamer.td.innerText = retGamer.name + " " + retGamer.targets.length;
+	if(_game.currentUser && _game.currentUser.td) {
+		_game.currentUser.td.style.color = "black";
+		retGamer.td.style.color = "red";
+		var caption = retGamer.name + " (" + retGamer.targets.length + ")";
+		if(retGamer.targets.length == 0)
+			caption = retGamer.name;
 
-            var caption = "Стреляет:" + retGamer.name + " (" + retGamer.targets.length + ")";
-            if(retGamer.targets.length == 0)
-                caption = retGamer.name;
+		retGamer.td.innerText = caption;
 
-            retGamer.td.innerText = caption;
-
-		}
+	}
+	
+	
+	_game.currentUser = retGamer;
 		
-		
-		_game.currentUser = retGamer;
-            
-        return retGamer;
-    }
+	return retGamer;
 }
 
 
-//Отрисовка
+//Отрисовка игры
 _game.render = function(){
     if(!this.state){
         console.log('Не указано состояние объекта!');
@@ -507,12 +615,6 @@ _game.render = function(){
             break;
         case _GAME_STATES.GAME_START:
             _game.render_game_start();
-            break;
-        case _GAME_STATES.GAME_STARTED:
-            _game.render_game_started();
-            break;
-        case _GAME_STATES.GAME_OVER:
-            _game.render_game_over();
             break;
     }
 }
@@ -552,11 +654,18 @@ _game.render_init = function ()
         }
 
         var gamername = self.nameGamerInput.value;
+		
+		for(var key in _game.gamers){
+			var existingGamer = _game.gamers[key];
+			if(existingGamer.name == gamername) {
+				alert('Такой игрок уже есть!');
+				return;
+			}
+		}
+		
         self.nameGamerInput.value = "";
 
         self.addGamer(gamername);
-
-        
     }
 
     //Кнопка добавления бота
@@ -598,7 +707,7 @@ _game.render_init = function ()
             return;
         }
         else {
-            _game.try_start();
+            _game.constructBattlefields();
         }
 
 
@@ -772,6 +881,7 @@ function NewShip(rowIndex, colIndex, shipDimension, ai) {
     return newShip;
 }
 
+//Вычисляем состояние каждой клетки игрового поля в зависимости от расположения кораблей и попаданий по полю
 var calculate_battlefield_state = function() {
 
     for(var row_index = 0; row_index < this.battleField.length; row_index++) {
@@ -809,7 +919,7 @@ var calculate_battlefield_state = function() {
         }
     }
 	
-
+	
     for(var row_index = 0; row_index < this.battleField.length; row_index++) {
         var bfRow = this.battleField[row_index];
 
@@ -917,6 +1027,7 @@ var calculate_battlefield_state = function() {
 }
 
 
+//Обновление клетки игрового поля
 function updateCell(bfCell, gamer){
     if(!bfCell || !bfCell.state)
 		console.error('Ошибка!');
@@ -924,9 +1035,6 @@ function updateCell(bfCell, gamer){
     var countGamersHuman = _game.countGamersHuman();
     var hideShips = false;
 
-    
-
-    
     if(countGamersHuman > 1)
         hideShips = true;
     else if(countGamersHuman > 0 && gamer.ai)
@@ -1029,15 +1137,11 @@ var render_battlefield = function() {
                 }
             }
             else if(_game.state == _GAME_STATES.GAME_START) {
-			
 				if(allowShut) {
-				
 						cursor = "crosshair";
 				
 						onclick = function (nomanual) { 
  
-							//if(nomanual)
-							//    return;
 							gamer.addHitting(this.rowIndex, this.colIndex);
 							
 							gamer.render_battlefield();
@@ -1071,11 +1175,10 @@ _game.render_prepare_battlefield = function ()
             if(_game.state != _GAME_STATES.PREPARE_BATTLEFIELD)
                 break;
 			else {
-                if(++counter > 1000) {
-                    console.error('зависание. нужно разобраться')
-                    break;
-                }
-
+				var newCurrentGamer = _game.getCurrentGamer();
+				if(newCurrentGamer != currentGamer)
+					break;
+			
                 currentGamer.randomCellClick();
             }
         }
@@ -1088,8 +1191,6 @@ _game.render_game_start = function ()
 
     var currentGamer = _game.getCurrentGamer();
 
-    //currentGamer.render_battlefield();
-
     for(var key in currentGamer.targets){
         var target = currentGamer.targets[key];
         target.render_battlefield();
@@ -1098,36 +1199,24 @@ _game.render_game_start = function ()
     if(currentGamer.ai) {
         currentGamer.aiShut();
     }
-/*
-    var i = 0;
-
-    while(true) {
-
-        if(!(currentGamer.ai && currentGamer.targets.length > 0 && ++i < 30))
-            break;
-
-        setTimeout(function() {
-            currentGamer.randomCellClick();
-        }, 1)
-
-    }*/
-}
-
-
-//Отрисовка стартованной игры
-_game.render_game_started = function ()
-{
-    console.log('render_game_started');
-    var gameContent = document.getElementById("game-content");
-    gameContent.innerText = "started";
-}
-
-//Отрисовка подготовки игры к старту
-_game.render_game_over = function ()
-{
-    console.log('render_game_over');
-    var gameContent = document.getElementById("game-content");
-    gameContent.innerText = "game_over";
+	
+	var countGamersInGame = 0;
+	for(var key in _game.gamers){
+		var gamer = _game.gamers[key];
+		var countBattleShips = 0;
+		for(var sKey in gamer.ships) {
+			var ship = gamer.ships[sKey];
+			if(!ship.destroyed)
+				countBattleShips++;
+		}
+		
+		if(countBattleShips > 0) 
+			countGamersInGame++;
+	}
+	
+	if(countGamersInGame < 2) {
+		alert('game_over');
+	}
 }
 
 
