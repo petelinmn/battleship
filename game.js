@@ -28,8 +28,6 @@ var _newShipOrientation = SHIP_ORIENTATION.VERTICAL;
 //Проигрывание звуковых эффектов
 function playSound(name) {
 
-    //return;
-
     if(!name)
         return;
 
@@ -111,6 +109,59 @@ function Gamer(name, ai) {
         }
         return resultShips;
     }
+	
+	//Стоит ли стрелять по данной клетке
+	this.needShutOnCell = function(target, row, col) {
+	
+		var besideCells = [];
+		
+		var battleField = target.battleField;
+		
+		var cell = battleField[row][col];
+		
+		if(!cell || !cell.state)
+			return false;
+		
+		if(cell.state == CELL_STATES.PAST || 
+			cell.state == CELL_STATES.WOUNDED || 
+			cell.state == CELL_STATES.DESTROYED)
+				return false;
+		
+		if(row != 0) {
+			if(col != 0) 
+				besideCells.push(battleField[row - 1][col - 1]);
+				
+			besideCells.push(battleField[row - 1][col]);
+			
+			if(col != 9) 
+				besideCells.push(battleField[row - 1][col + 1]);
+		}
+		
+		if(col != 0) 
+			besideCells.push(battleField[row][col - 1]);
+		
+		if(col != 9) 
+			besideCells.push(battleField[row][col + 1]);
+	
+		if(row != 9) {
+			if(col != 0) 
+				besideCells.push(battleField[row + 1][col - 1]);
+				
+			besideCells.push(battleField[row + 1][col]);
+			
+			if(col != 9) 
+				besideCells.push(battleField[row + 1][col + 1]);
+		}
+		
+		
+		for(var i = 0; i < besideCells.length; i++) {
+			if(besideCells[i].state == CELL_STATES.DESTROYED) {
+					return false;
+				}
+		} 
+		
+		return true;
+	}
 
 	//Добавить корабль
     this.addShip = function(nomanual) {
@@ -134,11 +185,9 @@ function Gamer(name, ai) {
             }
         }
 
-		
         self.ships.push(self.newship);
         self.newship = [];
 
-		//Если корабль создает человек, перерисуем его поле
         if(nomanual)
             self.render_battlefield();
 
@@ -230,7 +279,6 @@ function Gamer(name, ai) {
 			_game.render();
 		}
         
-        
         countDestroyed = 0;
         for(var key in this.ships){
             if(this.ships[key].destroyed)
@@ -260,10 +308,14 @@ function Gamer(name, ai) {
     
     //Выстрел компьютера
 	this.aiShut = function () { 
-	
         var self = this;
 		//Стрельба происходит с интервалом
 		setTimeout(function() {
+			var currentGamer = _game.getCurrentGamer(true);
+			if(currentGamer != self) {
+				return;
+			}
+			
 			if(self.targets.length == 0)
 				return;
 				
@@ -271,7 +323,8 @@ function Gamer(name, ai) {
 			var shut_col = -1;
 
 			var wounded_body = [];
-			for(var key in self.targets){
+			//Пробегаемся по всем целям, ищем раненые корабли, и выбираем их целями в первую очередь
+			for(var key in self.targets) {
 				var target = self.targets[key];
 				for(var key_ship in target.ships) {
 					var ship = target.ships[key_ship];
@@ -280,11 +333,9 @@ function Gamer(name, ai) {
 							var point = ship[p_index];
 							for(var hit_key in target.hittings) {
 								var hitting = target.hittings[hit_key];
-
-								
-									if(hitting.rowIndex == point.rowIndex && hitting.colIndex == point.colIndex) {
-										wounded_body.push(point);
-									}
+								if(hitting.rowIndex == point.rowIndex && hitting.colIndex == point.colIndex) {
+									wounded_body.push(point);
+								}
 							}
 						}
 					}
@@ -294,109 +345,109 @@ function Gamer(name, ai) {
 				}
 				
 				if(wounded_body.length > 0) {
-				var counter = 0;
-				while(shut_row < 0 && shut_col < 0) {
-							
-					if(++counter > 500) 
-						debugger;
-							
-					var prevPoint;
-					for(var key in wounded_body) {
-						var point = wounded_body[key];
-						if(wounded_body.length == 1) {
-							if(Math.random() >= 0.5) {
-							
-								if(point.rowIndex == 0)
-									shut_row = point.rowIndex + 1;	
-								else if(point.rowIndex == 9)
-									shut_row = point.rowIndex - 1;	
-								else {
-									if(Math.random() >= 0.5)
-										shut_row = point.rowIndex - 1;
-									else 
-										shut_row = point.rowIndex + 1;		
-								}
+					var counter = 0;
+					while(shut_row < 0 && shut_col < 0) {							
+						var prevPoint;
+						for(var key in wounded_body) {
+							var point = wounded_body[key];
+							if(wounded_body.length == 1) {
+								if(Math.random() >= 0.5) {
 								
-								shut_col = point.colIndex;
+									if(point.rowIndex == 0)
+										shut_row = point.rowIndex + 1;	
+									else if(point.rowIndex == 9)
+										shut_row = point.rowIndex - 1;	
+									else {
+										if(Math.random() >= 0.5)
+											shut_row = point.rowIndex - 1;
+										else 
+											shut_row = point.rowIndex + 1;		
+									}
+									
+									shut_col = point.colIndex;
+								}
+								else {
+								
+									if(point.colIndex == 0)
+										shut_col = point.colIndex + 1;	
+									else if(point.colIndex == 9)
+										shut_col = point.colIndex - 1;
+									else {
+										if(Math.random() >= 0.5)
+											shut_col = point.colIndex - 1;
+										else 
+											shut_col = point.colIndex + 1;		
+									}
+
+									shut_row = point.rowIndex;									
+								}
+
+								break;
 							}
 							else {
-							
-								if(point.colIndex == 0)
-									shut_col = point.colIndex + 1;	
-								else if(point.colIndex == 9)
-									shut_col = point.colIndex - 1;
-								else {
-									if(Math.random() >= 0.5)
-										shut_col = point.colIndex - 1;
-									else 
-										shut_col = point.colIndex + 1;		
+								
+								if(!prevPoint) {
+									prevPoint = point;
+									break;
 								}
-
-								shut_row = point.rowIndex;									
-							}
-
-							break;
-						}
-						else {
-							
-							if(!prevPoint) {
-								prevPoint = point;
-								break;
-							}
-							
-							//Если фигура вертикальная
-							if(prevPoint.rowIndex < point.rowIndex) {
-								shut_col = wounded_body[0].colIndex;
-								if(wounded_body[0].rowIndex == 0)
-									shut_row = wounded_body[wounded_body.length - 1].rowIndex + 1;
-								else if (wounded_body[wounded_body.length - 1].rowIndex == 9)
-									shut_row = wounded_body[0].rowIndex - 1;
-								else {
-									if(Math.random() >= 0.5)
-										shut_row = wounded_body[0].rowIndex - 1;
-									else
+								
+								//Если фигура вертикальная
+								if(prevPoint.rowIndex != point.rowIndex) {
+									shut_col = wounded_body[0].colIndex;
+									if(wounded_body[0].rowIndex == 0)
 										shut_row = wounded_body[wounded_body.length - 1].rowIndex + 1;
+									else if (wounded_body[wounded_body.length - 1].rowIndex == 9)
+										shut_row = wounded_body[0].rowIndex - 1;
+									else {
+										if(Math.random() >= 0.5)
+											shut_row = wounded_body[0].rowIndex - 1;
+										else
+											shut_row = wounded_body[wounded_body.length - 1].rowIndex + 1;
+									}
 								}
-							}
-							else //если горизонтальная
-							{
-								shut_row = wounded_body[0].rowIndex;
-								if(wounded_body[0].colIndex == 0)
-									shut_col = wounded_body[wounded_body.length - 1].colIndex + 1;
-								else if (wounded_body[wounded_body.length - 1].colIndex == 9)
-									shut_col = wounded_body[0].colIndex - 1;
-								else {
-									if(Math.random() >= 0.5)
-										shut_col = wounded_body[0].colIndex - 1;
-									else
+								else //если горизонтальная
+								{
+									shut_row = wounded_body[0].rowIndex;
+									if(wounded_body[0].colIndex == 0)
 										shut_col = wounded_body[wounded_body.length - 1].colIndex + 1;
+									else if (wounded_body[wounded_body.length - 1].colIndex == 9)
+										shut_col = wounded_body[0].colIndex - 1;
+									else {
+										if(Math.random() >= 0.5)
+											shut_col = wounded_body[0].colIndex - 1;
+										else
+											shut_col = wounded_body[wounded_body.length - 1].colIndex + 1;
+									}
 								}
 							}
+							prevPoint = point;
 						}
-						prevPoint = point;
-					}
-					
-					for(var key in target.hittings) {
-							var hitting = target.hittings[key];
-							if(hitting.rowIndex == shut_row && hitting.colIndex == shut_col) {
-								shut_row = -1;
-								shut_col = -1;
-								break;
+						
+						//Если по данной клетке уже стреляли ищем другую
+						for(var key in target.hittings) {
+								var hitting = target.hittings[key];
+								if(hitting.rowIndex == shut_row && hitting.colIndex == shut_col) {
+									shut_row = -1;
+									shut_col = -1;
+									break;
+								}
 							}
-						}
-				}
+					}
 				}
 				
-				
-
-				//Выстрел наугад
 				var i = 0;
-				
+				//Выстрел наугад
 				if(shut_col < 0 || shut_row < 0)
 					while(true) {
 						shut_row = Math.floor(Math.random() * 10);
 						shut_col = Math.floor(Math.random() * 10);
 
+						//если по клетке стрелять не стоит, по ней уже стреляли или она рядом с подбитым кораблем
+						if(!self.needShutOnCell(target, shut_row, shut_col)) {
+							continue;
+						}
+						
+						//если так
 						for(var key in target.hittings) {
 							var hitting = target.hittings[key];
 							if(hitting.rowIndex == shut_row && hitting.colIndex == shut_col)
@@ -408,14 +459,15 @@ function Gamer(name, ai) {
 				
 
 				var td = target.battleField[shut_row][shut_col].td;
+				
 				if(td && td.onclick) {
-					td.onclick();
-					self.aiShut();
+					td.onclick(true);
+					if(self.targets.length > 0) {
+						self.aiShut();
+					}
 					return;
-
-					
 				}
-			}}, 2000);
+			}}, 1500);
 	}
 }
 
@@ -547,7 +599,7 @@ _game.getCurrentGamer = function(withoutUpdate) {
 				
 				if(replaceRetGamer) {
 					retGamer = target;
-					//playSound(SOUNDS.RELOAD);
+					playSound(SOUNDS.RELOAD);
 					break;
 				}
 				
@@ -587,10 +639,6 @@ _game.getCurrentGamer = function(withoutUpdate) {
 
 //Отрисовка игры
 _game.render = function(){
-    if(!this.state){
-        console.log('Не указано состояние объекта!');
-        return;
-    }
 
     if(this.state == _GAME_STATES.PREPARE_BATTLEFIELD) {
         var battlefieldPrepared = true;
@@ -712,8 +760,6 @@ _game.render_init = function ()
         else {
             _game.constructBattlefields();
         }
-
-
     }
 
 
@@ -752,7 +798,6 @@ _game.render_init_continue = function ()
 //Отрисовка подготовки игры к старту
 _game.render_construct_battlefield = function ()
 {
-    console.log('render_start');
     var gameContent = document.getElementById("game-content");
     gameContent.innerText = "";
     
@@ -1127,6 +1172,7 @@ var render_battlefield = function() {
 				
             if(_game.state == _GAME_STATES.PREPARE_BATTLEFIELD) {   
                 onclick = function (nomanual) { 
+				
                     gamer.newship = NewShip(this.rowIndex, this.colIndex, shipDimension, gamer.ai);
                     gamer.addShip(nomanual);
                 }
@@ -1136,7 +1182,16 @@ var render_battlefield = function() {
 						cursor = "crosshair";
 				
 						onclick = function (nomanual) { 
- 
+							
+							if (typeof nomanual == 'object')
+								nomanual = false;
+							
+							var currentGamer = _game.getCurrentGamer(true);
+														
+							if(currentGamer.ai && !nomanual) {
+								return;
+							}
+							
 							gamer.addHitting(this.rowIndex, this.colIndex);
 							
 							gamer.render_battlefield();
@@ -1145,6 +1200,7 @@ var render_battlefield = function() {
             }
             else 
             { 
+				cursor = null;
                 bfCell.td.onclick = null; 
             }
 
@@ -1181,8 +1237,8 @@ _game.render_prepare_battlefield = function ()
 
 //Отрисовка подготовки игры к старту
 _game.render_game_start = function ()
-{
-    console.log('render_game_start');
+{	
+	this.orientButton.style.display = "none";
 
     var currentGamer = _game.getCurrentGamer();
 
@@ -1210,7 +1266,7 @@ _game.render_game_start = function ()
 	}
 	
 	if(countGamersInGame < 2) {
-		if(confirm('Игра окончена!'))
+		if(confirm('Игра окончена! Начать заново?'))
 			_game.initGame();
 	}
 }
