@@ -35,6 +35,9 @@ if(msie)
 
 if(msie && msie < 9)
 {
-    document.body.innerHTML = "<h3>Ошибка - старая версия браузера!</h3>" 
+	if(msie == 8)
+		document.body.innerHTML = "<h3>Internet Explorer 8 пока не поддерживается!</h3>" 
+	else
+		document.body.innerHTML = "<h3>Ошибка - старая версия браузера!</h3>" 
     document.execCommand('Stop');
 }    
