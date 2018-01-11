@@ -273,7 +273,11 @@ function Gamer(name, ai) {
             if(shutter.targets.length == 0)
                 caption = shutter.name;
 
-            shutter.td.innerText = caption;
+			var captionNode = document.createTextNode(caption);
+			while (shutter.td.firstChild) {
+				shutter.td.removeChild(shutter.td.firstChild);
+			}
+			shutter.td.appendChild(captionNode);
 
 			if(shutter.targets.length == 0)
 			_game.render();
@@ -585,7 +589,7 @@ _game.getCurrentGamer = function(withoutUpdate) {
 				if(gamer.ships.length < 10) {
 					return gamer;
 				}
-			}                    
+			}
 		break;
 		case _GAME_STATES.GAME_START:
 		
@@ -626,10 +630,13 @@ _game.getCurrentGamer = function(withoutUpdate) {
 		if(retGamer.targets.length == 0)
 			caption = retGamer.name;
 
-		retGamer.td.innerText = caption;
-
+			
+		var captionNode = document.createTextNode(caption);
+		while (retGamer.td.firstChild) {
+			retGamer.td.removeChild(retGamer.td.firstChild);
+		}
+		retGamer.td.appendChild(captionNode);
 	}
-	
 	
 	_game.currentUser = retGamer;
 		
@@ -689,9 +696,11 @@ _game.render_init = function ()
 
     //Кнопка добавления игрока
     this.addGamerButton = document.createElement("button");
-    this.addGamerButton.innerText = "Добавить игрока"
+	var addGamerButtonTitle = document.createTextNode("Добавить игрока");
+    this.addGamerButton.appendChild(addGamerButtonTitle);
     this.addGamerButton.setAttribute('class', "btn add-user");
     initMenuContainer.appendChild(this.addGamerButton);
+	this.initMenuContainer = initMenuContainer;
     this.addGamerButton.onclick = function() {
 
         if(!self.nameGamerInput) {
@@ -715,13 +724,13 @@ _game.render_init = function ()
 		}
 		
         self.nameGamerInput.value = "";
-
         self.addGamer(gamername);
     }
 
     //Кнопка добавления бота
     this.addBotButton = document.createElement("button");
-    this.addBotButton.innerText = "Добавить игрока AI"
+	var addBotButtonTitle = document.createTextNode("Добавить игрока AI");
+    this.addBotButton.appendChild(addBotButtonTitle);
     this.addBotButton.setAttribute('class', "btn add-bot");
     initMenuContainer.appendChild(this.addBotButton);
     this.addBotButton.onclick = function(){
@@ -749,7 +758,8 @@ _game.render_init = function ()
 
     //Кнопка старта игры
     this.startButton = document.createElement("button");
-    this.startButton.innerText = "Старт"
+	var startButtonTitle = document.createTextNode("Старт");
+    this.startButton.appendChild(startButtonTitle);
     this.startButton.setAttribute('class', "btn add-bot");
     initMenuContainer.appendChild(this.startButton);
     this.startButton.onclick = function(){
@@ -782,13 +792,14 @@ _game.render_init_continue = function ()
             var existInList = false;
             for(var j = 0; j < this.gamersList.childNodes.length; j++) {
                 var gamerListItem = this.gamersList.childNodes[j];
-                if(gamer.name == gamerListItem.innerText)
+				if(gamer.name == gamerListItem.innerText || gamer.name == gamerListItem.textContent)
                     existInList = true;
             }
 
             if(!existInList){
                 var gamersListItem = document.createElement("li");
-                gamersListItem.innerText = gamer.name;
+				var itemTitle = document.createTextNode(gamer.name);
+				gamersListItem.appendChild(itemTitle);
                 this.gamersList.appendChild(gamersListItem);    
             }
         }
@@ -814,7 +825,8 @@ _game.render_construct_battlefield = function ()
             this.toolTD.setAttribute("rowspan", 2);
 
             this.orientButton = document.createElement("button");
-            this.orientButton.innerText = "Повернуть";
+			var orientButtonTitle = document.createTextNode("Повернуть");
+			this.orientButton.appendChild(orientButtonTitle);
             this.orientButton.setAttribute('class', 'btn');
             var orientButton = this.orientButton;
             this.orientButton.onclick = function() {
@@ -1216,6 +1228,8 @@ var render_battlefield = function() {
 //Отрисовка подготовки игры к старту
 _game.render_prepare_battlefield = function ()
 {
+	this.initMenuContainer.style.display = "none";
+
     var currentGamer = _game.getCurrentGamer();
 
     currentGamer.render_battlefield();
@@ -1266,7 +1280,8 @@ _game.render_game_start = function ()
 	}
 	
 	if(countGamersInGame < 2) {
-		if(confirm('Игра окончена! Начать заново?'))
+		var winner = _game.getCurrentGamer(true);
+		if(confirm('Победитель:' + winner.name + '. Начать заново?'))
 			_game.initGame();
 	}
 }
