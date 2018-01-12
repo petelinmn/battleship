@@ -330,126 +330,135 @@ function Gamer(name, ai) {
 			//Пробегаемся по всем целям, ищем раненые корабли, и выбираем их целями в первую очередь
 			for(var key in self.targets) {
 				var target = self.targets[key];
-				for(var key_ship in target.ships) {
-					var ship = target.ships[key_ship];
-					if(ship.wounded && !ship.destroyed) {
-						for(var p_index in ship) {
-							var point = ship[p_index];
-							for(var hit_key in target.hittings) {
-								var hitting = target.hittings[hit_key];
-								if(hitting.rowIndex == point.rowIndex && hitting.colIndex == point.colIndex) {
-									wounded_body.push(point);
-								}
-							}
-						}
-					}
-					
-					if(wounded_body.length > 0)
-						break;
-				}
-				
-				if(wounded_body.length > 0) {
-					var counter = 0;
-					while(shut_row < 0 && shut_col < 0) {							
-						var prevPoint;
-						for(var key in wounded_body) {
-							var point = wounded_body[key];
-							if(wounded_body.length == 1) {
-								if(Math.random() >= 0.5) {
-								
-									if(point.rowIndex == 0)
-										shut_row = point.rowIndex + 1;	
-									else if(point.rowIndex == 9)
-										shut_row = point.rowIndex - 1;	
-									else {
-										if(Math.random() >= 0.5)
-											shut_row = point.rowIndex - 1;
-										else 
-											shut_row = point.rowIndex + 1;		
-									}
-									
-									shut_col = point.colIndex;
-								}
-								else {
-								
-									if(point.colIndex == 0)
-										shut_col = point.colIndex + 1;	
-									else if(point.colIndex == 9)
-										shut_col = point.colIndex - 1;
-									else {
-										if(Math.random() >= 0.5)
-											shut_col = point.colIndex - 1;
-										else 
-											shut_col = point.colIndex + 1;		
-									}
-
-									shut_row = point.rowIndex;									
-								}
-
-								break;
-							}
-							else {
-								
-								if(!prevPoint) {
-									prevPoint = point;
-									break;
-								}
-								
-								//Если фигура вертикальная
-								if(prevPoint.rowIndex != point.rowIndex) {
-									shut_col = wounded_body[0].colIndex;
-									if(wounded_body[0].rowIndex == 0)
-										shut_row = wounded_body[wounded_body.length - 1].rowIndex + 1;
-									else if (wounded_body[wounded_body.length - 1].rowIndex == 9)
-										shut_row = wounded_body[0].rowIndex - 1;
-									else {
-										if(Math.random() >= 0.5)
-											shut_row = wounded_body[0].rowIndex - 1;
-										else
-											shut_row = wounded_body[wounded_body.length - 1].rowIndex + 1;
-									}
-								}
-								else //если горизонтальная
-								{
-									shut_row = wounded_body[0].rowIndex;
-									if(wounded_body[0].colIndex == 0)
-										shut_col = wounded_body[wounded_body.length - 1].colIndex + 1;
-									else if (wounded_body[wounded_body.length - 1].colIndex == 9)
-										shut_col = wounded_body[0].colIndex - 1;
-									else {
-										if(Math.random() >= 0.5)
-											shut_col = wounded_body[0].colIndex - 1;
-										else
-											shut_col = wounded_body[wounded_body.length - 1].colIndex + 1;
+				if((self.aiLevel == 2 && Math.random() < 0.5) || self.aiLevel == 3) {
+					for(var key_ship in target.ships) {
+						var ship = target.ships[key_ship];
+						if(ship.wounded && !ship.destroyed) {
+							for(var p_index in ship) {
+								var point = ship[p_index];
+								for(var hit_key in target.hittings) {
+									var hitting = target.hittings[hit_key];
+									if(hitting.rowIndex == point.rowIndex && hitting.colIndex == point.colIndex) {
+										wounded_body.push(point);
 									}
 								}
 							}
-							prevPoint = point;
 						}
 						
-						//Если по данной клетке уже стреляли ищем другую
-						for(var key in target.hittings) {
-								var hitting = target.hittings[key];
-								if(hitting.rowIndex == shut_row && hitting.colIndex == shut_col) {
-									shut_row = -1;
-									shut_col = -1;
+						if(wounded_body.length > 0)
+							break;
+					}
+					
+					if(wounded_body.length > 0) {
+						var counter = 0;
+						while(shut_row < 0 && shut_col < 0) {							
+							var prevPoint;
+							for(var key in wounded_body) {
+								var point = wounded_body[key];
+								if(wounded_body.length == 1) {
+									if(Math.random() >= 0.5) {
+									
+										if(point.rowIndex == 0)
+											shut_row = point.rowIndex + 1;	
+										else if(point.rowIndex == 9)
+											shut_row = point.rowIndex - 1;	
+										else {
+											if(Math.random() >= 0.5)
+												shut_row = point.rowIndex - 1;
+											else 
+												shut_row = point.rowIndex + 1;		
+										}
+										
+										shut_col = point.colIndex;
+									}
+									else {
+									
+										if(point.colIndex == 0)
+											shut_col = point.colIndex + 1;	
+										else if(point.colIndex == 9)
+											shut_col = point.colIndex - 1;
+										else {
+											if(Math.random() >= 0.5)
+												shut_col = point.colIndex - 1;
+											else 
+												shut_col = point.colIndex + 1;		
+										}
+
+										shut_row = point.rowIndex;									
+									}
+
 									break;
 								}
+								else {
+									
+									if(!prevPoint) {
+										prevPoint = point;
+										break;
+									}
+									
+									//Если фигура вертикальная
+									if(prevPoint.rowIndex != point.rowIndex) {
+										shut_col = wounded_body[0].colIndex;
+										if(wounded_body[0].rowIndex == 0)
+											shut_row = wounded_body[wounded_body.length - 1].rowIndex + 1;
+										else if (wounded_body[wounded_body.length - 1].rowIndex == 9)
+											shut_row = wounded_body[0].rowIndex - 1;
+										else {
+											if(Math.random() >= 0.5)
+												shut_row = wounded_body[0].rowIndex - 1;
+											else
+												shut_row = wounded_body[wounded_body.length - 1].rowIndex + 1;
+										}
+									}
+									else //если горизонтальная
+									{
+										shut_row = wounded_body[0].rowIndex;
+										if(wounded_body[0].colIndex == 0)
+											shut_col = wounded_body[wounded_body.length - 1].colIndex + 1;
+										else if (wounded_body[wounded_body.length - 1].colIndex == 9)
+											shut_col = wounded_body[0].colIndex - 1;
+										else {
+											if(Math.random() >= 0.5)
+												shut_col = wounded_body[0].colIndex - 1;
+											else
+												shut_col = wounded_body[wounded_body.length - 1].colIndex + 1;
+										}
+									}
+								}
+								prevPoint = point;
 							}
+							
+							//Если по данной клетке уже стреляли ищем другую
+							for(var key in target.hittings) {
+									var hitting = target.hittings[key];
+									if(hitting.rowIndex == shut_row && hitting.colIndex == shut_col) {
+										shut_row = -1;
+										shut_col = -1;
+										break;
+									}
+								}
+						}
 					}
 				}
-				
 				var i = 0;
 				//Выстрел наугад
 				if(shut_col < 0 || shut_row < 0)
 					while(true) {
+					
+						if(++i > 1000){
+							console.error('Ошибка работы программы!');
+							_game.state = _GAME_STATES.GAME_OVER;
+							return;
+						}							
+					
 						shut_row = Math.floor(Math.random() * 10);
 						shut_col = Math.floor(Math.random() * 10);
 
 						//если по клетке стрелять не стоит, по ней уже стреляли или она рядом с подбитым кораблем
-						if(!self.needShutOnCell(target, shut_row, shut_col)) {
-							continue;
-						}
+						if((self.aiLevel == 2 && Math.random() < 0.5) || self.aiLevel == 3)
+							if(!self.needShutOnCell(target, shut_row, shut_col)) {
+								continue;
+							}
 						
 						//если так
 						for(var key in target.hittings) {
@@ -514,8 +523,12 @@ _game.countGamersHuman = function() {
 }
 
 //Добавление игрока
-_game.addGamer = function (name, ai){
+_game.addGamer = function (name, ai, aiLevel){
 	var newGamer = new Gamer(name, ai);
+	
+	if(aiLevel)
+		newGamer.aiLevel = aiLevel;
+	
     this.gamers.push(newGamer);
        
     if(this.gamers.length > 3) {
@@ -735,11 +748,20 @@ _game.render_init = function ()
     initMenuContainer.appendChild(this.addBotButton);
     this.addBotButton.onclick = function(){
 
-        var botnames = ["Саша","Маша","Даша","Вася","Петя","Игорь","Макс","Таня","Ксюша","Котя","Люба","Сережа", "Питер"]
+        var botnames = ["Саша", "Маша", "Даша", "Вася", "Петя", "Игорь", "Макс", "Таня", "Ксюша", "Котя", "Люба", "Сережа", "Питер"]
 
         var botname = botnames[Math.floor(Math.random() * botnames.length)] + " (AI)";
 
+		var i = 0;
+		
 		while(true) {
+					
+			if(++i > 1000){
+				console.error('Ошибка работы программы!');
+				_game.state = _GAME_STATES.GAME_OVER;
+				return;
+			}		
+		
 			var existThisName = false;
 			for(var key in _game.gamers){
 				if(_game.gamers[key].name == botname)
@@ -753,8 +775,35 @@ _game.render_init = function ()
 		}
 		
 		
-        self.addGamer(botname, true);
+        self.addGamer(botname, true, self.selectBoxAILevel.value);
     }
+	
+	
+	//Уровень бота
+	var selectBox = document.createElement("select");
+	this.selectBoxAILevel = selectBox;
+	
+	var selectBoxItem = document.createElement("option");
+	var selectBoxItemTextNode = document.createTextNode("Слабый");
+	selectBoxItem.appendChild(selectBoxItemTextNode);
+	selectBoxItem.setAttribute('value', 1);
+	selectBox.appendChild(selectBoxItem);
+	
+	selectBoxItem = document.createElement("option");
+	selectBoxItemTextNode = document.createTextNode("Средний");
+	selectBoxItem.appendChild(selectBoxItemTextNode);
+	selectBoxItem.setAttribute('value', 2);
+	selectBox.appendChild(selectBoxItem);
+	
+	selectBoxItem = document.createElement("option");
+	var selectBoxItemTextNode = document.createTextNode("Сильный");
+	selectBoxItem.appendChild(selectBoxItemTextNode);
+	selectBoxItem.setAttribute('value', 3);
+	selectBox.appendChild(selectBoxItem);
+	
+	selectBox.value = 2;
+	
+	initMenuContainer.appendChild(selectBox);
 
     //Кнопка старта игры
     this.startButton = document.createElement("button");
@@ -1124,7 +1173,12 @@ function updateCell(bfCell, gamer){
 			case CELL_STATES.PAST:
 				bfCell.td.style.fontSize = "medium";
 				bfCell.td.style.textAlign = "center";
-				bfCell.td.innerText = '•';
+				var pastTitle = document.createTextNode('•');
+				while (bfCell.td.firstChild) {
+					bfCell.td.removeChild(bfCell.td.firstChild);
+				}
+				
+				bfCell.td.appendChild(pastTitle);
                 break; 
             case CELL_STATES.WRONG:
                 bfCell.td.setAttribute("class", "wrong");
@@ -1235,8 +1289,17 @@ _game.render_prepare_battlefield = function ()
     currentGamer.render_battlefield();
     
     var counter = 0;
+	var i = 0;
+	
     if(currentGamer.ai)
         while(true) {
+		
+			if(++i > 1000) {
+				console.error('Ошибка работы программы!');
+				_game.state = _GAME_STATES.GAME_OVER;
+				return;
+			}		
+		
             if(_game.state != _GAME_STATES.PREPARE_BATTLEFIELD)
                 break;
 			else {
