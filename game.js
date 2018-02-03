@@ -1173,10 +1173,21 @@ function updateCell(bfCell, gamer){
 			case CELL_STATES.PAST:
 				bfCell.td.style.fontSize = "medium";
 				bfCell.td.style.textAlign = "center";
-				var pastTitle = document.createTextNode('•');
-				while (bfCell.td.firstChild) {
-					bfCell.td.removeChild(bfCell.td.firstChild);
-				}
+                var pastTitle = document.createTextNode('•');
+                
+                if(bfCell.td.firstChild) {
+                    while (bfCell.td.firstChild) {
+                        bfCell.td.removeChild(bfCell.td.firstChild);
+                    }
+                }
+                else {
+                    bfCell.td.style.backgroundColor = "#fb8888";
+
+                    setTimeout(function(){
+                        bfCell.td.style.backgroundColor = null;
+                    }, 700)
+                }
+                
 				
 				bfCell.td.appendChild(pastTitle);
                 break; 
