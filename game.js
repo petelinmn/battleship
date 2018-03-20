@@ -985,7 +985,8 @@ function NewShip(rowIndex, colIndex, shipDimension, ai) {
     return newShip;
 }
 
-//Вычисляем состояние каждой клетки игрового поля в зависимости от расположения кораблей и попаданий по полю
+//Вычисляем состояние каждой клетки игрового поля
+//в зависимости от расположения кораблей и попаданий по полю
 var calculate_battlefield_state = function() {
 
     for(var row_index = 0; row_index < this.battleField.length; row_index++) {
